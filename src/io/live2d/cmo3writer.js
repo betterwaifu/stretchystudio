@@ -1231,9 +1231,13 @@ export async function generateCmo3(input) {
   // Exported: groupId → parameter ID string (for animation export)
   const deformerParamMap = new Map(); // groupId → { paramId, min, max }
 
-  // Default rotation range for generic parameter bindings (Approach B from Session 8 prompt)
-  const DEFORMER_ANGLE_MIN = -30;
-  const DEFORMER_ANGLE_MAX = 30;
+  // Default rotation range for generic parameter bindings.
+  // Expanded to ±180 so shoulder/hip joints can rotate limbs to any pose
+  // including overhead. Cubism's CRotationDeformer stores the angle per keyform
+  // and interpolates it (not the geometry), so a wide range works correctly
+  // for any rotation value.
+  const DEFORMER_ANGLE_MIN = -180;
+  const DEFORMER_ANGLE_MAX = 180;
 
   // Bone nodes get baked keyforms on their meshes instead of rotation deformers.
   // Their parameters were already created in the pre-creation step above.

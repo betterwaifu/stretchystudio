@@ -20,6 +20,20 @@ const LIMB_TAGS = new Set([
 
 async function decodeAlphaMask(pngData) {
   if (!pngData || !pngData.length) return null;
+  // Node path: use pngjs to decode the buffer directly without DOM APIs.
+  if (typeof process !== 'undefined' && process.versions?.node) {
+    try {
+      const { PNG } = await import('pngjs');
+      return await new Promise((resolve) => {
+        const png = new PNG();
+        png.parse(Buffer.from(pngData), (err, data) => {
+          if (err || !data) return resolve(null);
+          // pngjs returns Buffer of RGBA (8-bit per channel)
+          resolve({ data: new Uint8ClampedArray(data.data), width: data.width, height: data.height });
+        });
+      });
+    } catch { return null; }
+  }
   if (typeof Image === 'undefined' || typeof URL === 'undefined') return null;
   try {
     const blob = new Blob([pngData], { type: 'image/png' });
@@ -84,9 +98,7 @@ export async function analyzeBody(canvasW, canvasH, meshes) {
   if (!Number.isFinite(canvasW) || !Number.isFinite(canvasH)) return null;
   const W = canvasW | 0, H = canvasH | 0;
   if (W <= 0 || H <= 0) return null;
-  if (typeof Image === 'undefined') {
-    return { skipped: 'no-dom', warnings: ['DOM unavailable (non-browser env)'] };
-  }
+  // No-DOM check disabled — Node path uses pngjs.
 
   const coreMask = new Uint8Array(W * H);
   const fullMask = new Uint8Array(W * H);
